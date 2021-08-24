@@ -1,8 +1,10 @@
-FROM python:3.7.3-slim
-COPY requirements.txt /
-RUN pip3 install -r /requirements.txt
+FROM python:slim
 
 COPY . /app
 WORKDIR /app
 
-ENTRYPOINT ["./gunicorn.sh"]
+RUN pip install -r requirements.txt
+
+EXPOSE 80
+
+ENTRYPOINT ["sh","./gunicorn.sh"]
