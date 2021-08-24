@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block scripts %}
+  <script>
+    // Format input depending on user input. 
+    function formatInput(input) {
+      var finalLine = input // For manual type
+      // For direct copy paste from game
+      if (input.includes("joined the lobby")) {
+        var tempLine = input.replace(/joined the lobby/g, "-");
+        finalLine = tempLine.substring(0, tempLine.length - 1);
+      }
+      document.getElementById('username').value = finalLine;
+    }
+
+    function buttonDisable() {
+	  if(document.getElementById("username").value==="") { document.getElementById('search-button').disabled = true; } 
+    else { document.getElementById('search-button').disabled = false; }
+    }
+  </script>
+  <script type="text/javascript">
+    function loading(){
+        $("#loading").show();
+        $("#content").hide();       
+    }
+  </script>
+
+{% endblock %}
+
+{% block content %}
+<h1 class="header">Dodge List for League of Legends</h1>
+<img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" width=400px>
+<br><br>
+<h2 class="label-main">Search Player/s Stats</h2>
+<br><br>
+<form class="base-form" action="/search" method="POST">
+    <div class="form-group">
+      <input type="text" class="single-input-bar" id="username" name="username" onChange="formatInput(this.value)" onkeyup="buttonDisable();" placeholder="Enter Username/s (Supports 'joined lobby' Format)" autofocus>
+    </div>
+    <br><br>
+    <button class="submit-button" type="submit" id="search-button" onclick="loading();" disabled>Search</button>
+  </form> 
+{% endblock %}

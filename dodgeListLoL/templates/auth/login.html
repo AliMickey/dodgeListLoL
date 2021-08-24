@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h2 class="label-main">Login</h2>
+{% endblock %}
+
+{% block content %}
+  <form class="base-form" method="post">
+    <input class="auth-input-bar" name="username" id="username" placeholder="Username" required>
+    <br><br>
+    <input class="auth-input-bar" type="password" name="password" id="password" placeholder="Password" required>
+    <br><br>
+    <input class="submit-button" type="submit" value="Log In">
+  </form>
+{% endblock %}

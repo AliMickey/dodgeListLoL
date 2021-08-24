@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block scripts %}
+  <script>
+    function buttonDisable() {
+      if (document.getElementById("username").value==="") { document.getElementById('add-button').disabled = true; } 
+      else { document.getElementById('add-button').disabled = false; }
+    }
+
+    $(document).ready(function() {
+      if (document.getElementById("username").value!="") {
+        document.getElementById('add-button').disabled = false;
+      }
+    });
+  </script>
+{% endblock %}
+
+{% block content %}
+  <h1 class="header">Dodge List for League of Legends</h1>
+  <br><br>
+  <h2 class="label-main">Add Player/s to List</h2>
+  <br><br>
+  <form action="/add-player" method="POST">
+    <div class="form-group">
+      <label class="label-main"></label>
+      <br><br><br><br>
+      <input type="text" class="auth-input-bar" id="username" name="username" value="{{preFill}}" onChange="formatInput(this.value)" onkeyup="buttonDisable();" onload="buttonDisable();"  placeholder="Enter Username/s" maxLength="16">
+      &nbsp;&nbsp;&nbsp;&nbsp;
+      <input type="text" class="auth-input-bar" id="reason" name="reason" placeholder="Enter Reason" maxLength="80">
+      &nbsp;&nbsp;&nbsp;&nbsp;
+      <select class="dropdown-input" name="lists" required>Choose Lists:
+        <option value="1">Global</option>
+        {% for listID,listName in privateLists.items() %} 
+        <option value="{{listID}}">{{listName}}</label>
+        {% endfor %}
+        <optgroup label="Shared Lists:" disabled></optgroup>
+        {% for listID,listName in sharedLists.items() %}
+        <option value="{{listID}}">{{listName}}</label>
+        {% endfor %}
+      </select>
+    </div>
+    <br><br>
+    <button type="submit" class="submit-button" id="add-button" disabled>Add</button>
+  </form>
+{% endblock %}

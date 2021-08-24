@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block scripts %}
+  <script>
+    function buttonDisable() {
+      if (document.getElementById("title").value==="") { document.getElementById('save-button').disabled = true; } 
+      else { document.getElementById('save-button').disabled = false; }
+      }
+  </script>
+{% endblock %}
+
+{% block content %}
+  <h2 class="label-main">New Shared List</h2>
+  <br><br>
+  <form class="base-form" method="post">
+    <input class="single-input-bar" name="title" id="title" onkeyup="buttonDisable();" placeholder="List Name">
+    <br><br>
+    <button class="submit-button" id="save-button" type="submit" disabled>Save</button>
+  </form>
+{% endblock %}

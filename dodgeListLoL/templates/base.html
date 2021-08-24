@@ -1,0 +1,63 @@
+<!doctype html>
+<title>Dodge List LoL</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+<script src="{{ url_for('static', filename='jquery-3.5.1.slim.min.js') }}"></script>
+
+
+{% block scripts %} {% endblock %}
+<nav class="main-nav">
+  <ul>
+    <li><img src="{{ url_for('static', filename='logo-menu.png') }}" alt="Logo" width=130px></li>
+    <li><a class="active" href="/">Home</a></li>
+    <li style="float:right; font-size: 16px"><a href="https://www.buymeacoffee.com/dodge.live" target="_blank">Donate &#128558</a></li>
+    {% if g.user %}
+    <li class="dropdown-content"><a>Lists</a>
+      <ul style="z-index:999">
+        <li><a href="{{ url_for('lists.globalList') }}">Global</a></li>
+        <li><a href="{{ url_for('lists.privateList') }}">Private</a></li>
+        <li style="cursor:pointer"><a>Shared</a>
+          {% if not sharedListsDict %}
+          <ul> 
+            <li><a>-----------------------</a></li>
+            <li><a href="{{ url_for('lists.create') }}">Create New</a></li>          
+          </ul>
+          {% else %}
+          <ul>
+            {% for listName, listID in sharedListsDict.items() %}
+            <li><a href="{{ url_for('lists.sharedList', listID=listID[0]) }}">{{listName}}</a></li>            
+            {% endfor %}
+            <li><a>-----------------------</a></li>
+            <li><a href="{{ url_for('lists.create') }}">Create New</a></li>  
+          </ul>
+          {% endif %}
+        </li>
+      </ul>
+    </li>
+    <li><a href="/add-player">Add Player</a></li>
+    <li style="float:right"><a href="{{ url_for('auth.logout') }}">Log Out - {{ g.user['username'] }}</a>
+    {% else %}
+    <li class="dropdown-content"><a>Lists</a>
+      <ul>
+        <li><a href="{{ url_for('lists.globalList') }}">Global</a></li>
+      </ul>
+    </li>
+    <li style="float:right"><a href="{{ url_for('auth.register') }}">Register</a></li>
+    <li style="float:right"><a href="{{ url_for('auth.login') }}">Log In</a></li>
+    {% endif %}
+  </ul>
+</nav>
+
+<div class='container'>
+  <section class="row">
+    {% block content %}{% endblock %}
+    <br><br>
+    {% for message in get_flashed_messages() %}
+      <div class="flash">{{ message }}</div>
+    {% endfor %}
+  </section>
+</div>
+
+{% block footer %}
+    <h6 class="footer">© 2021 Dodge.Live Dodge.Live isn’t endorsed by Riot Games and doesn’t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc. League of Legends © Riot Games, Inc.</p>
+{% endblock %}

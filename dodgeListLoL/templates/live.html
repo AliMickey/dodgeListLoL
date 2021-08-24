@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container">
+    {% if summoners|length != 0 %}
+    <table class="view-table">
+      <thead>
+        <tr>
+          <!-- <th>Avatar</th> -->
+          <th>Username</th>
+          <th>Dodge</th>
+          <th>Ranked Solo/Duo</th>
+          <th>Ranked Flex</th>
+          <th>Level</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for username,user_info in summoners.items() %}
+        <tr>
+            <!-- <td><img width=20px src="http://ddragon.leagueoflegends.com/cdn/11.2.1/img/profileicon/{{ user_info['icon'] }}.png"></td> -->
+            <td><a href="https://oce.op.gg/summoner/userName={{username}}" target="_blank">{{username}}</a> - <a href="{{ url_for('main.getLiveGame', username=username) }}">Live</a></td>
+            <!-- Don't show add to list if not logged in or entry is already in a list -->
+            {% if (g.user is not defined) or (g.user and user_info['dodge'] == "No") %}
+                <td>{{user_info['dodge']}} - <a href="{{ url_for('main.addPlayer', username=username) }}">Add</a></td>
+            {% else %}
+              <td>{{user_info['dodge']}}</td>
+            {% endif %}
+            <td>{{user_info['solo']}}</td>
+            <td>{{user_info['flex']}}</td>
+            <td>{{user_info['level']}}</td> 
+          </tr>
+        {% endfor %}
+      </tbody>  
+    </table>
+    {% endif %}
+  </div>
+{% endblock %}

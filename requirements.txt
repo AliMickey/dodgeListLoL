@@ -1,0 +1,5 @@
+Flask
+gunicorn
+riotwatcher
+flask_httpauth
+discord_webhook

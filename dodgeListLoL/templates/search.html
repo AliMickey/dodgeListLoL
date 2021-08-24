@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container">
+    {% if summoners|length != 0 %}
+    <ul class="search-table">
+      {% for username,user_info in summoners.items() %}
+      <li class="search-table-item">
+        <span style="float:left"><img width=45px src="http://ddragon.leagueoflegends.com/cdn/11.4.1/img/profileicon/{{ user_info['icon'] }}.png"></span><a class="cleanUrl" style="font-size:25px;font-weight:bold;margin-right:-20px" href="https://oce.op.gg/summoner/userName={{username}}" target="_blank">{{ username }} <img src="{{ url_for('static', filename='opgg.png') }}" width="25" alt="OP.GG Link"></a><br><br><br>
+        <span style="float:left">Dodge: </span><span style="float:right">{{ user_info['dodge'] }}&nbsp;-&nbsp;<a class="cleanUrl" style="background-color:purple;" href="{{ url_for('main.addPlayer', username=username) }}">Add</a></span><br>
+        <span style="float:left">W-L (Season): </span><span style="float:right">{{ user_info['soloWins'] }} - {{ user_info['soloLosses'] }}</span><br>
+        <span style="float:left">W/R (20 Games): </span><span style="float:right">{{ user_info['winRate'] }}</span><br>
+        <span class="search-table-divider"></span><br>
+        <span style="float:left">Solo: </span><span style="float:right">{{ user_info['solo'] }}</span><br>
+        <span style="float:left">Flex: </span><span style="float:right">{{ user_info['flex'] }}</span><br>
+        <span style="float:left">Level: </span><span style="float:right">{{ user_info['level'] }}</span><br>
+        <span class="search-table-divider"></span><br>
+        <span style="float:left">Best Champs: </span>
+          {% for champName in user_info['bestChamps'] %}
+          <img style="float:right; padding:5px;" width=30px src="http://ddragon.leagueoflegends.com/cdn/11.4.1/img/champion/{{champName}}.png">
+          {% endfor %}
+        </span><br><br>
+        <span style="float:left">Worst Champs: </span>
+          {% for champName in user_info['worstChamps'] %}
+          <img style="float:right; padding:5px;" width=30px src="http://ddragon.leagueoflegends.com/cdn/11.4.1/img/champion/{{champName}}.png">
+          {% endfor %}
+          </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+{% endblock %}
