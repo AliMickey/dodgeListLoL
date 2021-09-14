@@ -11,4 +11,5 @@ dist/
 build/
 *.egg-info/
 
-instance/
+instance/config.py
+instance/dodgeListLoL.sqlite

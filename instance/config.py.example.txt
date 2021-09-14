@@ -1,0 +1,4 @@
+DATABASE="dodgeListLoL.sqlite"
+SECRET_KEY=""
+DISCORD_WEBHOOK=""
+RIOT_API=""
