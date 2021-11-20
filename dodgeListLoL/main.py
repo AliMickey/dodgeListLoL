@@ -1,8 +1,8 @@
 import requests, json
 from riotwatcher import LolWatcher, ApiError
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, url_for, current_app
+    Blueprint, flash, g, redirect, render_template, request, url_for
 )
 from dodgeListLoL.db import get_db
 from dodgeListLoL.auth import login_required
@@ -11,28 +11,14 @@ from dodgeListLoL.notifications import sendNotifAddPlayer
 bp = Blueprint('main', __name__)
 
 riotApi = None
-my_region = 'oc1'
-championNames = {}
+platformRegion = "oc1"
+continentRegion = "americas"
 
 #Get all champions in game latest patch with caching32
 gameVersion = requests.get('https://ddragon.leagueoflegends.com/api/versions.json').json()[0]
-localChamps = {}
-with open('files/champion.json', 'r+', encoding='utf-8') as champFile:
-    localChamps = json.load(champFile)        
-    #if localChamps['version'] != gameVersion:
-       # champFile.seek(0)
-        #localChamps = requests.get('http://ddragon.leagueoflegends.com/cdn/{}/data/en_US/champion.json'.format(gameVersion)).json()
-        #json.dump(localChamps, champFile, indent = 4)
-        
-apiChampionList =  localChamps['data']        
 
-#Map each champion ID to its name 
-for champion in apiChampionList:
-    key = int(apiChampionList[champion]["key"])
-    championNames[key] = apiChampionList[champion]["id"]
 
-# Routes
-
+## Routes
 #Index
 @bp.route('/')
 def index():
@@ -59,10 +45,13 @@ def search(username=None):
             if apiSummoner is not None:
                 if summonerInDodgeList(apiSummoner['name'], -1): 
                     dodge = "Yes"
-                threads.append(executor.submit(summonerAnalyser, apiSummoner, summoner, dodge, requestSummonerDict))
+                try:
+                    threads.append(executor.submit(summonerAnalyser, apiSummoner, summoner, dodge, requestSummonerDict))
+                except:
+                    print("error1")
             else:
                 flash("No Such Summoner Exists: " + summoner)
-    return render_template('search.html', summoners=requestSummonerDict) # Show summoner/s details in next page
+    return render_template('search.html', summoners=requestSummonerDict, gameVersion=gameVersion) # Show summoner/s details in next page
 
 
 #Add a player to dodge list
@@ -130,30 +119,12 @@ def addPlayer(username=None):
     return redirect(url_for('main.addPlayer'))
 
 
-#Live game functionality
-# @bp.route('/live',  methods = ['POST', 'GET'])
-# @login_required
-# def getLiveGame(summoner=None):
-#     if request.method == 'GET':
-#         summonerName = request.args.get('username', '')
-#         apiSummoner = getSummoner(summonerName)
-#         if apiSummoner is not None:
-#             print(apiSummoner)
-#             teamDict = {}
-#             enemyDict = {}
-
-#         else:
-#             flash("Player Does Not Exist: " + summoner)
-#         render_template('live.html', summonersTeam=teamDict, summonersEnemy=enemyDict)
-
-
-# Functions
-#Format client side input to comma seperated string
+## Functions
+# Format client side input to comma seperated string
 def formatSummoners(usernames):
     # Format input to list of summoners
     summonerList = usernames.replace(' - ', ',').strip().split(',')
     return summonerList
-
 
 #Check if player is in selected dodge list
 def summonerInDodgeList(entryName, listID):
@@ -203,20 +174,21 @@ def addEntryToList(entryName, entryReason, listID):
     )
     db.commit()
 
-
+# Get details for summoner from api
 def getSummoner(summoner):
     try: 
-        apiSummoner = riotApi.summoner.by_name(my_region, summoner)
+        apiSummoner = riotApi.summoner.by_name(platformRegion, summoner)
         return apiSummoner
     except ApiError as err:
         if err.response.status_code == 404:
             return None
 
-
+# Main analysis for summoner
 def summonerAnalyser(apiSummoner, userInput, dodge, requestSummonerDict):
+    print(apiSummoner)
     #Init all summoner details
     summonerId = apiSummoner['id']
-    summonerPuid = apiSummoner['accountId']
+    summonerPuid = apiSummoner['puuid']
     summonerName = apiSummoner['name']
     summonerLevel = apiSummoner['summonerLevel']
     summonerImage = apiSummoner['profileIconId']
@@ -226,7 +198,7 @@ def summonerAnalyser(apiSummoner, userInput, dodge, requestSummonerDict):
     rankSoloLosses = 0
 
     # Ranking
-    summonerRanks = riotApi.league.by_summoner(my_region, summonerId)
+    summonerRanks = riotApi.league.by_summoner(platformRegion, summonerId)
 
     for queueType in summonerRanks:
         if queueType['queueType'] == "RANKED_SOLO_5x5":
@@ -245,7 +217,8 @@ def summonerAnalyser(apiSummoner, userInput, dodge, requestSummonerDict):
     worstChamps = {} 
 
     #Get all matches
-    summonerMatchHistory = riotApi.match.matchlist_by_account(region=my_region, encrypted_account_id=summonerPuid, season=[13], begin_index = 0, end_index=20)
+    summonerMatchHistory = riotApi.match.matchlist_by_puuid(region=continentRegion, puuid=summonerPuid, count=20)
+
     matchAnalyserRunner(summonerMatchHistory, summonerName, championWinratesDict, winRateDict) #Multithread
 
     # Descending order of games
@@ -265,49 +238,44 @@ def summonerAnalyser(apiSummoner, userInput, dodge, requestSummonerDict):
     
     # Adds info to final return dictionary
     requestSummonerDict[summonerName] = {'solo' : rankSolo, 'flex' : rankFlex, 'soloWins' : rankSoloWins, 'soloLosses' : rankSoloLosses, 'level' : summonerLevel, 'icon' : summonerImage, 'dodge' : dodge, 'bestChamps' : bestChamps, 'worstChamps' : worstChamps, 'winRate' : winRate }
-    
 
+# Multithread function for match analysis
 def matchAnalyserRunner(summonerMatchHistory, summonerName, championWinratesDict, winRateDict):
     threads = []
     with ThreadPoolExecutor(max_workers=20) as executor:
-        for match in summonerMatchHistory['matches']:
-            threads.append(executor.submit(matchAnalyser, match, summonerName, championWinratesDict, winRateDict))
+        for matchId in summonerMatchHistory:
+            threads.append(executor.submit(matchAnalyser, matchId, summonerName, championWinratesDict, winRateDict))
 
-
-def matchAnalyser(match, summonerName, championWinratesDict, winRateDict):
-    #Map champion id to name played by player
-    champion = championNames[match['champion']]
-    playerTeamId = 0
-    
+# Match analysis function
+def matchAnalyser(matchId, summonerName, championWinratesDict, winRateDict):
     #Get detailed match info for current match
-    currentMatchDetails = riotApi.match.by_id(my_region, match['gameId'])
+    currentMatchDetails = riotApi.match.by_id(continentRegion, matchId)
 
-    # Check which team player was on
-    for player in currentMatchDetails['participantIdentities']:
-        if player['player']['summonerName'] == summonerName: 
-            playerTeamId = player['participantId']
-    #If less than 5 means was on team 0, otherwise team 1
-    if playerTeamId <= 5: 
-        playerTeamId = 0
-    else: 
-        playerTeamId = 1
+    summonerDetails = None
 
-    #Check if remake, and if game was won
-    if (currentMatchDetails['gameDuration'] >= 210):
-        if (currentMatchDetails['teams'][playerTeamId]['win'] == "Win"):
-            winRateDict[0] += 1   
-            if champion in championWinratesDict: 
-                championWinratesDict[champion][0] += 1
-            else: 
-                championWinratesDict[champion] = [1,0]
+    # Get details for current summoner
+    for player in currentMatchDetails['info']['participants']:
+        if player["summonerName"] == summonerName:
+            summonerDetails = player
+            break
+
+    winStatus = summonerDetails["win"]
+    surrenderStatus = summonerDetails['teamEarlySurrendered']
+    champion = summonerDetails["championName"]
+
+    if (winStatus == True):
+        winRateDict[0] += 1   
+        if champion in championWinratesDict: 
+            championWinratesDict[champion][0] += 1
         else: 
-            winRateDict[1] += 1
-            if champion in championWinratesDict: 
-                championWinratesDict[champion][1] += 1
-            else: 
-                championWinratesDict[champion] = [0,1]
-
-
+            championWinratesDict[champion] = [1,0]
+    else: 
+        winRateDict[1] += 1
+        if champion in championWinratesDict: 
+            championWinratesDict[champion][1] += 1
+        else: 
+            championWinratesDict[champion] = [0,1]
+            
 # Get all shared lists for current user
 @bp.app_context_processor
 def getSharedLists():
@@ -328,7 +296,7 @@ def getSharedLists():
             listsDict[listName] = [listID]
     return dict(sharedListsDict=listsDict)
 
-
+# Set up api instance before main app is run
 def setApiInstance(app):
     global riotApi
     riotApi = LolWatcher(app.config['RIOT_API'])

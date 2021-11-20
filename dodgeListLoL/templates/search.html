@@ -6,7 +6,7 @@
     <ul class="search-table">
       {% for username,user_info in summoners.items() %}
       <li class="search-table-item">
-        <span style="float:left"><img width=45px src="http://ddragon.leagueoflegends.com/cdn/11.4.1/img/profileicon/{{ user_info['icon'] }}.png"></span><a class="cleanUrl" style="font-size:25px;font-weight:bold;margin-right:-20px" href="https://oce.op.gg/summoner/userName={{username}}" target="_blank">{{ username }} <img src="{{ url_for('static', filename='opgg.png') }}" width="25" alt="OP.GG Link"></a><br><br><br>
+        <span style="float:left"><img width=45px src="http://ddragon.leagueoflegends.com/cdn/{{gameVersion}}/img/profileicon/{{ user_info['icon'] }}.png"></span><a class="cleanUrl" style="font-size:25px;font-weight:bold;margin-right:-20px" href="https://oce.op.gg/summoner/userName={{username}}" target="_blank">{{ username }} <img src="{{ url_for('static', filename='opgg.png') }}" width="25" alt="OP.GG Link"></a><br><br><br>
         <span style="float:left">Dodge: </span><span style="float:right">{{ user_info['dodge'] }}&nbsp;-&nbsp;<a class="cleanUrl" style="background-color:purple;" href="{{ url_for('main.addPlayer', username=username) }}">Add</a></span><br>
         <span style="float:left">W-L (Season): </span><span style="float:right">{{ user_info['soloWins'] }} - {{ user_info['soloLosses'] }}</span><br>
         <span style="float:left">W/R (20 Games): </span><span style="float:right">{{ user_info['winRate'] }}</span><br>
