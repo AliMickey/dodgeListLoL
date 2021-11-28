@@ -1,63 +1,137 @@
 <!doctype html>
-<title>Dodge List LoL</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-<script src="{{ url_for('static', filename='jquery-3.5.1.slim.min.js') }}"></script>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}{% endblock %}</title>
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">        
+        <link id="dark-theme-style" rel="stylesheet"/>
+        <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI=" crossorigin="anonymous"></script>
+        {% block scriptsHead %} {% endblock %}
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/"><img src="{{ url_for('static', filename='logo-menu.png') }}" alt="Logo" width=130px></a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav mb-2 mb-lg-0">
+                        <li class="nav-item"><a class="nav-link active" aria-current="page" href="/">Home</a></li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Lists</a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="{{ url_for('lists.globalList') }}">Global</a></li>
+                                {% if g.user %}
+                                    <li><a class="dropdown-item" href="{{ url_for('lists.privateList') }}">Private</a></li>
+                                    <li><hr class="dropdown-divider"/></li>
+                                    {% for listName, listID in sharedListsDict.items() %}
+                                        <li><a class="dropdown-item" href="{{ url_for('lists.sharedList', listID=listID[0]) }}">{{listName}}</a></li>
+                                    {% endfor %}
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#newSharedModal">Create New</a></li>
+                                {% endif %}
+                            </ul>
+                        </li> 
+                        {% if g.user %}
+                            <li class="nav-item"><a class="nav-link" href="{{ url_for('main.addPlayer') }}">Add Player</a></li>    
+                        {% endif %}   
+                    </ul>          
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                        {% if g.user %}
+                            <li><a class="nav-link" href="{{ url_for('auth.logout') }}">Log Out - {{ g.user['username'] }}</a></li>  
+                        {% else %}
+                            <li style="float:right"><a class="nav-link" href="{{ url_for('auth.login') }}">Log In</a></li>
+                            <li style="float:right"><a class="nav-link" href="{{ url_for('auth.register') }}">Register</a></li>
+                        {% endif %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">More</a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="javascript:void()" id="theme-toggler" onclick="toggleTheme()">Toggle Theme</a></li>
+                                <li><a class="dropdown-item" href="https://www.buymeacoffee.com/dodge.live" target="_blank">Donate &#128558</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>  
+        </nav>
+        
+        <div class="modal fade" id="newSharedModal" tabindex="-1" aria-labelledby="CreateNewSharedListModal" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Create Shared List</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="{{ url_for('lists.create') }}">
+                    <div class="modal-body">
+                        <label for="listName" class="form-label">List Name</label>
+                        <input type="text" class="form-control" id="listName" aria-describedby="listName" name="title" required>
+                        <div id="listNameHelp" class="form-text">Try and be descriptive, you can't change this later.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Create</button>
+                    </div>
+                </form>
+              </div>
+            </div>
+          </div>
 
+        <div class="container-fluid my-5">
+            <br><br>
+            {% block content %}{% endblock %}
 
-{% block scripts %} {% endblock %}
-<nav class="main-nav">
-  <ul>
-    <li><img src="{{ url_for('static', filename='logo-menu.png') }}" alt="Logo" width=130px></li>
-    <li><a class="active" href="/">Home</a></li>
-    <li style="float:right; font-size: 16px"><a href="https://www.buymeacoffee.com/dodge.live" target="_blank">Donate &#128558</a></li>
-    {% if g.user %}
-    <li class="dropdown-content"><a>Lists</a>
-      <ul style="z-index:999">
-        <li><a href="{{ url_for('lists.globalList') }}">Global</a></li>
-        <li><a href="{{ url_for('lists.privateList') }}">Private</a></li>
-        <li style="cursor:pointer"><a>Shared</a>
-          {% if not sharedListsDict %}
-          <ul> 
-            <li><a>-----------------------</a></li>
-            <li><a href="{{ url_for('lists.create') }}">Create New</a></li>          
-          </ul>
-          {% else %}
-          <ul>
-            {% for listName, listID in sharedListsDict.items() %}
-            <li><a href="{{ url_for('lists.sharedList', listID=listID[0]) }}">{{listName}}</a></li>            
-            {% endfor %}
-            <li><a>-----------------------</a></li>
-            <li><a href="{{ url_for('lists.create') }}">Create New</a></li>  
-          </ul>
-          {% endif %}
-        </li>
-      </ul>
-    </li>
-    <li><a href="/add-player">Add Player</a></li>
-    <li style="float:right"><a href="{{ url_for('auth.logout') }}">Log Out - {{ g.user['username'] }}</a>
-    {% else %}
-    <li class="dropdown-content"><a>Lists</a>
-      <ul>
-        <li><a href="{{ url_for('lists.globalList') }}">Global</a></li>
-      </ul>
-    </li>
-    <li style="float:right"><a href="{{ url_for('auth.register') }}">Register</a></li>
-    <li style="float:right"><a href="{{ url_for('auth.login') }}">Log In</a></li>
-    {% endif %}
-  </ul>
-</nav>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="row justify-content-center">
+                    <div class="col-8 p-5 text-center">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            {% endwith %}
+        </div>
+        <footer class="fixed-bottom py-2 text-center border-top fs-6 text-muted">
+            This website isn’t endorsed by Riot Games and doesn’t reflect the views of Riot Games. League of Legends and Riot Games are trademarks of Riot Games, Inc. View the source code for this website at <a class="text-decoration-none" href="https://github.com/AliMickey/dodgeListLoL" target="_blank">GitHub</a>
+        </footer>
+        
+        {% block scriptsBody %} {% endblock %}
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+        <script>
+            const LOCAL_STORAGE_KEY = "dodge-lol-dark-theme";
+            const LOCAL_META_DATA = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY));
+            const DARK_THEME_PATH = "https://bootswatch.com/5/darkly/bootstrap.min.css";
+            const DARK_STYLE_LINK = document.getElementById("dark-theme-style");
+            const THEME_TOGGLER = document.getElementById("theme-toggler");
 
-<div class='container'>
-  <section class="row">
-    {% block content %}{% endblock %}
-    <br><br>
-    {% for message in get_flashed_messages() %}
-      <div class="flash">{{ message }}</div>
-    {% endfor %}
-  </section>
-</div>
+            let isDark = LOCAL_META_DATA && LOCAL_META_DATA.isDark;
 
-{% block footer %}
-    <h6 class="footer">This website isn’t endorsed by Riot Games and doesn’t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks or registered trademarks of Riot Games, Inc. League of Legends © Riot Games, Inc. View the source code for this website at <a style="color: inherit; " target="_blank" href="https://github.com/AliMickey/dodgeListLoL">GitHub</a></p>
-{% endblock %}
+            if (isDark) {
+                enableDarkTheme();
+            } else {
+                disableDarkTheme();
+            }
+
+            function toggleTheme() {
+                isDark = !isDark;
+                if (isDark) {
+                    enableDarkTheme();
+                } else {
+                    disableDarkTheme();
+                }
+                const META = { isDark };
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(META));
+            }
+
+            function enableDarkTheme() {
+                DARK_STYLE_LINK.setAttribute("href", DARK_THEME_PATH);
+            }
+
+            function disableDarkTheme() {
+                DARK_STYLE_LINK.setAttribute("href", "");
+            }
+        </script>
+    </body>
+</html>

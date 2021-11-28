@@ -1,45 +1,55 @@
 {% extends 'base.html' %}
 
-{% block scripts %}
-  <script>
-    function buttonDisable() {
-      if (document.getElementById("username").value==="") { document.getElementById('add-button').disabled = true; } 
-      else { document.getElementById('add-button').disabled = false; }
-    }
+{% block title %}Add Player {% endblock %}
 
-    $(document).ready(function() {
-      if (document.getElementById("username").value!="") {
-        document.getElementById('add-button').disabled = false;
-      }
-    });
-  </script>
+{% block scripts %}
 {% endblock %}
 
 {% block content %}
-  <h1 class="header">Dodge List for League of Legends</h1>
-  <br><br>
-  <h2 class="label-main">Add Player/s to List</h2>
-  <br><br>
-  <form action="/add-player" method="POST">
-    <div class="form-group">
-      <label class="label-main"></label>
-      <br><br><br><br>
-      <input type="text" class="auth-input-bar" id="username" name="username" value="{{preFill}}" onChange="formatInput(this.value)" onkeyup="buttonDisable();" onload="buttonDisable();"  placeholder="Enter Username/s" maxLength="16">
-      &nbsp;&nbsp;&nbsp;&nbsp;
-      <input type="text" class="auth-input-bar" id="reason" name="reason" placeholder="Enter Reason" maxLength="80">
-      &nbsp;&nbsp;&nbsp;&nbsp;
-      <select class="dropdown-input" name="lists" required>Choose Lists:
-        <option value="1">Global</option>
-        {% for listID,listName in privateLists.items() %} 
-        <option value="{{listID}}">{{listName}}</label>
-        {% endfor %}
-        <optgroup label="Shared Lists:" disabled></optgroup>
-        {% for listID,listName in sharedLists.items() %}
-        <option value="{{listID}}">{{listName}}</label>
-        {% endfor %}
-      </select>
-    </div>
-    <br><br>
-    <button type="submit" class="submit-button" id="add-button" disabled>Add</button>
-  </form>
+<div class="row justify-content-center">
+  <div class="col-5 py-5">
+    <p class="fs-1 text-center">Add Player to a List</p>
+    <form method="POST" action="/add-player">
+        <div class="mb-3">
+          <label for="username" class="form-label">Player Name</label>
+          <input type="text" class="form-control" id="username" name="username" value="{{preFill}}" onChange="formatInput(this.value)" onkeyup="buttonDisable();" onload="buttonDisable();" maxLength="16" required>
+        </div>
+        <div class="mb-3">
+          <label for="reason" class="form-label">Reason</label>
+          <div class="input-group">
+            <textarea class="form-control" id="reason" name="reason" maxLength="80" required></textarea>
+            <button class="btn btn-outline-secondary" type="button" onclick="fillTemplate(0)">AFK</button>
+            <button class="btn btn-outline-secondary" type="button" onclick="fillTemplate(1)">Inting</button>
+            <button class="btn btn-outline-secondary" type="button" onclick="fillTemplate(2)">Feeding</button>
+        </div>
+        </div>
+        <div class="mb-3">
+          <label for="reason" class="form-label">List</label>
+          <select class="form-select" name="lists" aria-label="List Selection" required>Choose Lists:
+            <option value="1">Global</option>
+            <option value="{{privateList[0]}}">{{privateList[1]}}</label>
+            <optgroup label="Shared Lists:" disabled></optgroup>
+            {% for listID,listName in sharedLists.items() %}
+              <option value="{{listID}}">{{listName}}</label>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="text-center">
+          <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+      </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scriptsBody %}
+  <script>
+    function fillTemplate(reasonTemplate) {
+      if (reasonTemplate == 0) {text = "AFK"}
+      else if (reasonTemplate == 1) {text = "Inting"}
+      else if (reasonTemplate == 2) {text = "Feeding"}
+      reasonTextArea = document.getElementById('reason').value = text;
+    }
+  </script>
 {% endblock %}

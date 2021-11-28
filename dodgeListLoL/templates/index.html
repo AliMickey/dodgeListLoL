@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 
-{% block scripts %}
+{% block title %}Dodge List LoL{% endblock %}
+
+{% block scriptsHead %}
   <script>
     // Format input depending on user input. 
     function formatInput(input) {
@@ -24,20 +26,21 @@
         $("#content").hide();       
     }
   </script>
-
 {% endblock %}
 
 {% block content %}
-<h1 class="header">Dodge List for League of Legends</h1>
-<img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" width=400px>
-<br><br>
-<h2 class="label-main">Search Player/s Stats</h2>
-<br><br>
-<form class="base-form" action="/search" method="POST">
-    <div class="form-group">
-      <input type="text" class="single-input-bar" id="username" name="username" onChange="formatInput(this.value)" onkeyup="buttonDisable();" placeholder="Enter Username/s (Supports 'joined lobby' Format)" autofocus>
-    </div>
+  <div class="row text-center d-grid gap-4 position-absolute top-50 start-50 translate-middle">
+    <h1 class="header">Dodge List for League of Legends</h1>
+    <img class="rounded mx-auto d-block w-50" src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
     <br><br>
-    <button class="submit-button" type="submit" id="search-button" onclick="loading();" disabled>Search</button>
-  </form> 
+    <h2 class="label-main">Search Player/s Stats</h2>
+    <br><br>
+    <form method="POST" action="/search">
+        <div class="row mb-3">
+          <input type="text" class="form-control" aria-label="Username/s" id="username" name="username" onChange="formatInput(this.value)" onkeyup="buttonDisable();" placeholder="Enter Username/s (Supports 'joined lobby' Format)" autofocus></textarea>
+        <label><p class="text-muted">Only OC1 (OCE) region is currently supported.</p></label>
+        </div>
+        <button type="submit" class="btn btn-primary w-10" id="search-button" onclick="loading();" disabled>Search</button>
+      </form> 
+  </div>
 {% endblock %}

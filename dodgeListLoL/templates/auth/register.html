@@ -1,15 +1,29 @@
 {% extends 'base.html' %}
 
-{% block header %}
-  <h2 class="label-main">Register</h2>
-{% endblock %}
+{% block title %}Register{% endblock %}
 
 {% block content %}
-  <form class="base-form" method="post">
-    <input class="auth-input-bar" name="username" id="username" placeholder="Username" maxLength="15" required>
-    <br><br>
-    <input class="auth-input-bar" type="password" name="password" id="password" placeholder="Password" required>
-    <br><br>
-    <input class="submit-button" type="submit" value="Register">
+  <form method="POST" class="position-absolute top-50 start-50 translate-middle w-25">
+    <div class="mb-3">
+      <label for="inputUsername" class="col-form-label">Username</label>
+      <div class="col-sm-10">
+        <input class="form-control" id="username" name="username" maxLength="15" required>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label for="inputPassword" class="col-form-label">Password</label>
+      <div class="col-sm-10">
+        <input class="form-control" type="password" id="password" name="password" required>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label for="invCode" class="col-form-label">Invite Code</label>
+      <div class="col-sm-10">
+        <input class="form-control" type="text" id="invCode" name="invCode" required>
+      </div>
+    </div>
+    <div class="text-center">
+      <button type="submit" class="btn btn-primary">Register</button>
+    </div>
   </form>
 {% endblock %}

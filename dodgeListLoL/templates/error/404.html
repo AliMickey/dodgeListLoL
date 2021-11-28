@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1 class="header">Page Not Found</h1>
-  <br><br>
-  <p class="label-main">What you were looking for is just not there
-  <p><a class="label-main" href="{{ url_for('index') }}">Go Home</a>
+  <div class="row justify-content-center">
+    <div class="col-7 text-center">
+      <p class="fs-1">Page Not Found ~ 404</p>
+      <img src="{{ url_for('static', filename='404.jpg') }}" class="img w-75" alt="404 Error">
+      <br><br>
+      <button type="button" class="btn btn-primary btn-lg"><a class="text-reset text-decoration-none" href="{{ url_for('index') }}">Home</a></button>
+    </div>
+  </div>
 {% endblock %}
