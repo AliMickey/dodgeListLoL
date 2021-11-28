@@ -1,15 +1,16 @@
 # Dodge List LoL
 ## Description
 A web app to provide League of Legends players easy access to player tracking through the use of lists.
+
 [Live Version](https://dodge.app.mickit.net) ~ Invite Code: `github`
 
 ## Motivation
 Some League of Legends players needed to have the ability to track certain players that they have played with. This idea was initially done through the use of a shared online notebook, this did not prove to be efficient nor easy to use.
 
 ## Technologies Used
-[Flask](https://flask.palletsprojects.com)
-[Bootstrap](https://getbootstrap.com)
-[Docker](https://www.docker.com)
+[Flask](https://flask.palletsprojects.com),
+[Bootstrap](https://getbootstrap.com),
+[Docker](https://www.docker.com),
 [Riot API](https://developer.riotgames.com/apis)
 
 ## Build from source
