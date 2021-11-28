@@ -1,4 +1,4 @@
-DATABASE="dodgeListLoL.sqlite"
-SECRET_KEY=""
-DISCORD_WEBHOOK=""
-RIOT_API=""
+DATABASE = "dodgeListLoL.sqlite"
+SECRET_KEY = "Generate and put a UUID here."
+DISCORD_WEBHOOK = "Webhook URL to a discord channel for list addition notifications."
+RIOT_API = "Your own RIOT api key, (development key is free)."
