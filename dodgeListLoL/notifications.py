@@ -1,6 +1,7 @@
 from flask import current_app
 from discord_webhook import DiscordWebhook, DiscordEmbed
 
+# Send notification to discord channel
 def sendNotifAddPlayer(playerName, listName, addedBy, reason):
     webhook = DiscordWebhook(url=current_app.config['DISCORD_WEBHOOK'])
     title = "'" + playerName + "' was added to '" + listName + "' by '" + addedBy + "'"

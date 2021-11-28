@@ -8,9 +8,8 @@ from dodgeListLoL.db import get_db
 bp = Blueprint('lists', __name__, url_prefix='/lists')
 
 
-# Route
-
-#Global list
+## Routes
+# Global list
 @bp.route('/global')
 def globalList():
     db = get_db()
@@ -23,17 +22,16 @@ def globalList():
         ''').fetchall()
     for row in tempList:
         entryName, entryReason, authorName, entryID = row
-        listDict[entryName] = [entryReason, authorName, entryID]
-    return render_template('lists/global.html', data=listDict)
+        listDict[entryName] = [entryReason, entryID, authorName]
+    return render_template('list.html', listDict=listDict, listInfo={'ID': 1, 'title': "Global"})
 
-
-#Private list
+# Private list
 @bp.route('/private')
 @login_required
 def privateList():
     db = get_db()
     listDict = {}
-    #JOIN users u ON u.id = ?
+    listID = 0
     tempList = db.execute('''
         SELECT e.username, e.reason, e.id, l.id
         FROM entries e JOIN entryPartOf ep ON ep.entry_id = e.id JOIN lists l ON ep.list_id = l.id
@@ -41,161 +39,149 @@ def privateList():
         ''', [g.user['id']]).fetchall()
     for row in tempList:
         entryName, entryReason, entryID, listID = row
-        listDict[entryName] = [entryReason, entryID, listID]
-    return render_template('lists/private.html', data=listDict)
+        listDict[entryName] = [entryReason, entryID] 
+    return render_template('list.html', listDict=listDict, listInfo={'ID': listID, 'title': "Private"})
 
-
-# All shared lists ##CHECK
+# Shared lists
 @bp.route('/shared/<int:listID>', methods=('GET',))
 @login_required
 def sharedList(listID):
-    db = get_db()
-    listDict = {}
-    listTitle = ""
-    if checkAuthentication(listID, True):
+    if checkAuthentication(listID, checkMember=True):
+        db = get_db()
+        listDict = {}
         tempList = db.execute('''
-            SELECT e.username, e.reason, e.author_id, e.id, l.id, l.title
-            FROM users u JOIN ownerOf o ON o.u_id = u.id JOIN lists l ON l.id = o.list_id 
-            JOIN entryPartOf p ON p.list_id = l.id 
-            JOIN entries e ON e.id = p.entry_id 
-            WHERE l.id = ? and u.id = ? and l.type = "shared"
-            UNION
-            SELECT e.username, e.reason, e.author_id, e.id, l.id, l.title
-            FROM users u JOIN memberOf o ON o.u_id = u.id JOIN lists l ON l.id = o.list_id 
-            JOIN entryPartOf p ON p.list_id = l.id 
-            JOIN entries e ON e.id = p.entry_id 
-            WHERE l.id = ? and u.id = ? and l.type = "shared"
-        ''', (listID, g.user['id'], listID, g.user['id']))
+            SELECT entry_id, author_id, username, reason
+            FROM entries e JOIN entryPartOf ep ON ep.entry_id = e.id JOIN lists l ON ep.list_id = l.id
+            WHERE l.id = ?
+        ''', (listID,)).fetchall()
 
         for row in tempList:
-            entryName, entryReason, authorID, entryID, listIdentity, listT = row
+            entryID, authorID, username, reason = row
             authorName = db.execute('SELECT username FROM users WHERE id = ?', (authorID,)).fetchone()
-            listDict[entryName] = [entryReason, authorName[0], entryID]
-            listTitle = listT
-            listID = listIdentity
-        if listTitle == "":
-            listTitle = db.execute('SELECT title FROM lists WHERE id = ?', (listID,)).fetchone()[0]
+            listDict[username] = [reason, entryID, authorName[0]]
 
-        return render_template('lists/shared.html', data=listDict, listDetails=[listID, listTitle], sharedUsersDetails=getUserInShareList(listID))
+        listTitle = db.execute('SELECT title FROM lists WHERE id = ?', (listID,)).fetchone()[0]
+    
+        isOwner = checkAuthentication(listID, checkMember=False)
+        ownerName = db.execute('''
+            SELECT u.username
+            FROM users u JOIN ownerOf o ON o.u_id = u.id JOIN lists l ON l.id = o.list_id
+            WHERE l.id = ?
+        ''', (listID,)).fetchone()[0]
+
+        return render_template('list.html', listDict=listDict, listInfo={'ID': listID, 'title': listTitle, 'isOwner': isOwner, 'ownerName': ownerName, 'currentUserID': g.user['id']}, sharedUsersDetails=getUserInShareList(listID))
+
     else:
         abort(403)
-
 
 #Create a new list
-@bp.route('/create', methods=('GET', 'POST'))
+@bp.route('/create', methods=('POST',))
 @login_required
 def create():
-    if request.method == 'POST':
-        listTitle = request.form['title']
-        listType = "shared"
-        error = None
+    listTitle = request.form['title']
+    error = None
 
-        if listTitle is None:
-            error = 'Title is Required'
-        if len(listTitle) > 20:
-            error = 'Title is Too Long. Maximum 20 Characters'
-        if error is not None:
-            flash(error)
-        else:
-            db = get_db()
-            # Create the list with type and title
-            db.execute('''
-                INSERT INTO lists (type, title)
-                VALUES (?, ?)
-            ''', (listType, listTitle))
-            db.commit()
+    if listTitle is None:
+        error = 'Title is Required'
+    if len(listTitle) > 20:
+        error = 'Title is Too Long. Maximum 20 Characters'
+    if error is not None:
+        flash(error, "warning")
+    else:
+        db = get_db()
+        # Create the list with type and title
+        db.execute('''
+            INSERT INTO lists (type, title)
+            VALUES (?, ?)
+        ''', ("shared", listTitle))
+        db.commit()
 
-            # Get list ID
-            list_id = db.execute('''
-                SELECT l.id 
-                FROM lists l
-                WHERE l.type = ? AND l.title = ?
-                ''', (listType, listTitle)).fetchone()
+        # Get list ID
+        list_id = db.execute('''
+            SELECT l.id 
+            FROM lists l
+            WHERE l.type = ? AND l.title = ?
+            ''', ("shared", listTitle)).fetchone()
 
-            # Connect list to user
-            db.execute('INSERT INTO ownerOf (u_id, list_id) VALUES (?, ?)', (g.user['id'], list_id[0]))
-            db.commit()
-            flash("List Created")
-            return redirect(url_for('main.addPlayer'))
-            
-    return render_template('lists/create.html')
+        # Connect list to user
+        db.execute('INSERT INTO ownerOf (u_id, list_id) VALUES (?, ?)', (g.user['id'], list_id[0]))
+        db.commit()
+        flash("List created.", "success")
+        return redirect(url_for('lists.sharedList', listID=list_id[0]))
 
-
-#Add user to a share list
+# Add user to a share list
 @bp.route('/shared/<int:listID>/share/add', methods=('POST',))
 @login_required
-def addUserToShareList(userName=None, listID=None):
-    userName = request.form['userName']
-    db = get_db()
-    userID = db.execute('SELECT id FROM users WHERE username = ?', (userName,)).fetchone()
-    #Check if logged in user is owner/member of list.
-    if checkAuthentication(listID, True):
-        if userID:
-            db.execute('INSERT INTO memberOf (u_id, list_id) VALUES (?, ?)', (userID[0], listID))
-            db.commit()
-            return redirect(url_for('lists.sharedList', listID=listID))
-        else: 
-            flash("No Such User Exists")
-            return redirect(url_for('lists.sharedList', listID=listID))
-    else:
-        abort(403)
-
-
-#Remove user from a share list
-@bp.route('/shared/<int:listID>/share/remove', methods=('GET',))
-@login_required
-def removeUserFromShareList(userName=None, listID=None):
-    userName = request.args.get('userName', '')
-    db = get_db()
-    userID = db.execute('SELECT id FROM users WHERE username = ?', (userName,)).fetchone()
-    if userID and checkAuthentication(listID, True):
-        db.execute('DELETE FROM memberOf WHERE u_id = ? AND list_id = ?', (userID[0], listID))
-        db.commit()
-        return redirect(url_for('lists.sharedList', listID=listID))
-    else:
-        abort(403)
-    
-
-##Do checks if user is owner to be able to delete. 
-#Delete an entry
-@bp.route('/<string:listType>/<int:listID>/<int:entryID>/entry/delete', methods=('GET',))
-@login_required
-def deleteEntry(listType, entryID, listID):
-    if checkAuthentication(listID, True):
+def addUserToShareList(listID):
+    username = request.form['addShareUsername']
+    if checkAuthentication(listID, checkMember=False):
         db = get_db()
-        db.execute('DELETE FROM entryPartOf WHERE entry_id = ? AND list_id = ?', (entryID,listID))
+        userID = db.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
+        if userID:
+            if userID[0] == g.user['id']:
+                flash("You cannot share this list with yourself.", "warning")
+            else:
+                db.execute('INSERT INTO memberOf (u_id, list_id) VALUES (?, ?)', (userID[0], listID))
+                db.commit()
+                flash("User has been added.", "success")
+        else: 
+            flash("No such user exists.", "warning")
+    else:
+        flash("Only the owner can share this list other users.", "warning")
+
+    return redirect(url_for('lists.sharedList', listID=listID))
+
+# Remove user from a share list
+@bp.route('/shared/<int:listID>/share/remove', methods=('POST',))
+@login_required
+def removeUserFromShareList(listID):
+    userID = int(request.form['removeShareUserID'])
+    # If user is removing themselves or user is owner of list
+    if userID == g.user['id'] or checkAuthentication(listID, checkMember=False):
+        db = get_db()
+        db.execute('DELETE FROM memberOf WHERE u_id = ? AND list_id = ?', (userID, listID))
+        db.commit() 
+        flash("User has been removed.", "success")
+    else:
+        flash("Only the owner can remove shared users from this list.", "warning")
+
+    return redirect(url_for('lists.sharedList', listID=listID))
+    
+# Remove a player from a list
+@bp.route('/<int:listID>/<int:entryID>/remove', methods=('POST',))
+@login_required
+def removePlayer(listID, entryID):
+    if checkAuthentication(listID, checkMember=True):
+        db = get_db()
+        db.execute('DELETE FROM entryPartOf WHERE entry_id = ? AND list_id = ?', (entryID, listID))
+        db.execute('DELETE FROM entries WHERE id = ?', (entryID,))
         db.commit()
-        flash("Entry Deleted")
-        if listType == "global":
-            return redirect(url_for('lists.globalList'))
-        elif listType == "private":
-            return redirect(url_for('lists.privateList'))
-        elif listType == "shared":
-            return redirect(url_for('lists.sharedList', listID=listID))
+        flash("Player has been removed.", "success")
     else:
         abort(403)
+    return redirect(request.referrer)
 
-
-#Delete a list
-@bp.route('/<int:listID>/delete', methods=('GET',))
+# Delete a list
+@bp.route('/shared/<int:listID>/delete', methods=('POST',))
 @login_required
 def deleteList(listID):
-    db = get_db()
-    if checkAuthentication(listID, False):
+    if checkAuthentication(listID, checkMember=False):
+        db = get_db()
         db.execute('DELETE FROM ownerOf WHERE list_id = ?', (listID,))
         db.execute('DELETE FROM memberOf WHERE list_id = ?', (listID,))
         db.execute('DELETE FROM entryPartOf WHERE list_id = ?', (listID,))
         db.execute('DELETE FROM lists WHERE id = ?', (listID,))
         db.commit()
-        flash("List Deleted")  
+        flash("List deleted.", "success")  
         return redirect(url_for('main.index'))
     else:
-        abort(403)
+        flash("Only the owner can delete this list.", "warning")
 
 
-#Functions
+## Functions
 def checkAuthentication(listID, checkMember):
     db = get_db()
+    # Checks for member and owner
     if checkMember:
         tempUser = db.execute('''
             SELECT o.u_id
@@ -210,6 +196,7 @@ def checkAuthentication(listID, checkMember):
             return True
         else:
             return False
+    # Checks for owner only
     else:
         tempUser = db.execute('''
             SELECT o.u_id
@@ -221,8 +208,7 @@ def checkAuthentication(listID, checkMember):
         else:
             return False
             
-
-#Get users in current share list
+# Get members in current share list
 #@login_required
 def getUserInShareList(listID):
     db = get_db()
@@ -237,9 +223,8 @@ def getUserInShareList(listID):
         userList[username] = id
     return userList
 
-
 # Get all shared lists for current user
-@bp.context_processor
+@bp.app_context_processor
 def getSharedLists():
     listsDict = {}
     if g.user:

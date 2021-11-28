@@ -1,9 +1,9 @@
-import requests, json
-from riotwatcher import LolWatcher, ApiError
-from concurrent.futures import ThreadPoolExecutor
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, url_for
 )
+import requests
+from riotwatcher import LolWatcher, ApiError
+from concurrent.futures import ThreadPoolExecutor
 from dodgeListLoL.db import get_db
 from dodgeListLoL.auth import login_required
 from dodgeListLoL.notifications import sendNotifAddPlayer
@@ -45,62 +45,26 @@ def search(username=None):
             if apiSummoner is not None:
                 if summonerInDodgeList(apiSummoner['name'], -1): 
                     dodge = "Yes"
-                try:
-                    threads.append(executor.submit(summonerAnalyser, apiSummoner, summoner, dodge, requestSummonerDict))
-                except:
-                    print("error1")
+                threads.append(executor.submit(summonerAnalyser, apiSummoner, summoner, dodge, requestSummonerDict))
             else:
-                flash("No Such Summoner Exists: " + summoner)
+                flash(f"No Such Summoner Exists: {summoner}.", "warning")
     return render_template('search.html', summoners=requestSummonerDict, gameVersion=gameVersion) # Show summoner/s details in next page
 
 
 #Add a player to dodge list
 @bp.route('/add-player', methods = ['POST', 'GET'])
 @login_required
-def addPlayer(username=None):
-    req = request.form    
-    privateListDict = {}
+def addPlayer():
+    req = request.form
     sharedListDict = {}
-    if request.method == 'GET':
-        summonerVar = formatSummoners(request.args.get('username', ''))
-        #Get all shared/private lists ID for current user and pass them through to view.
+
+    if request.method == 'POST':
         db = get_db()
-        tempSharedList = db.execute('''
-            SELECT l.id, l.title
-            FROM lists l LEFT OUTER JOIN memberOf mo ON l.id = mo.list_id
-            JOIN users u ON u.id = mo.u_id
-            WHERE mo.u_id = ? AND l.type = "shared"
-            UNION
-            SELECT l.id, l.title
-            FROM lists l LEFT OUTER JOIN ownerOf oo ON l.id = oo.list_id
-            JOIN users u ON u.id = oo.u_id
-            WHERE oo.u_id = ? AND l.type = "shared"
-            ''', (g.user['id'], g.user['id'])).fetchall()
-
-        for row in tempSharedList: 
-            listID, listName = row
-            sharedListDict[listID] = listName
-
-        tempPrivateList = db.execute('''
-            SELECT l.id, l.title
-            FROM lists l JOIN ownerOF mo ON l.id = mo.list_id
-            JOIN users u ON u.id = mo.u_id
-            WHERE mo.u_id = ? AND l.type = "private"
-            ''', (g.user['id'],)).fetchall()
-
-        for row in tempPrivateList:
-            listID, listName = row
-            privateListDict[listID] = listName
-        
-        return render_template('add-player.html', privateLists=privateListDict, sharedLists=sharedListDict, preFill=summonerVar[0])
-        
-    elif request.method == 'POST':
-        summonerList = formatSummoners(req["username"])
-
-    for summoner in summonerList:
-        apiSummoner = getSummoner(summoner)
+        username = request.form['username']
         listID = request.form.get('lists')
-        db = get_db()
+
+        apiSummoner = getSummoner(username)
+        
         # Get list data
         listData = db.execute('''
             SELECT l.title, l.type
@@ -109,15 +73,50 @@ def addPlayer(username=None):
         ''', (listID,)).fetchone()
         if apiSummoner is not None and not summonerInDodgeList(apiSummoner['name'], int(listID)):
             addEntryToList(apiSummoner['name'], req["reason"], int(listID))
-            flash("Player Added to List")
+            flash("Player Added to List.", "success")
             # Send notification if list is of shared or global type
             if listData[1] == "global":
                 sendNotifAddPlayer(apiSummoner['name'], listData[0], g.user['username'], req["reason"])
+                return redirect(url_for('lists.globalList')) 
+            if listData[1] == "private":
+                return redirect(url_for('lists.privateList'))
+            elif listData[1] == "shared":
+                return redirect(url_for('lists.sharedList', listID=listID))
         else:
-            flash("Player Does Not Exist or is Already in List: " + summoner)
+            flash("Player does not exist or is already in the list.", "warning")
 
-    return redirect(url_for('main.addPlayer'))
+    preFillUsername = request.args.get('username', '')
+    # Get all shared/private lists ID for current user and pass them through to view.
+    db = get_db()
+    tempSharedList = db.execute('''
+        SELECT l.id, l.title
+        FROM lists l LEFT OUTER JOIN memberOf mo ON l.id = mo.list_id
+        JOIN users u ON u.id = mo.u_id
+        WHERE mo.u_id = ? AND l.type = "shared"
+        UNION
+        SELECT l.id, l.title
+        FROM lists l LEFT OUTER JOIN ownerOf oo ON l.id = oo.list_id
+        JOIN users u ON u.id = oo.u_id
+        WHERE oo.u_id = ? AND l.type = "shared"
+        ''', (g.user['id'], g.user['id'])).fetchall()
 
+    for row in tempSharedList: 
+        listID, listName = row
+        sharedListDict[listID] = listName
+
+    tempPrivateList = db.execute('''
+        SELECT l.id, l.title
+        FROM lists l JOIN ownerOF mo ON l.id = mo.list_id
+        JOIN users u ON u.id = mo.u_id
+        WHERE mo.u_id = ? AND l.type = "private"
+        ''', (g.user['id'],)).fetchall()
+
+    for row in tempPrivateList:
+        listID, listName = row
+        privateList=[listID,listName]
+        
+    return render_template('add-player.html', privateList=privateList, sharedLists=sharedListDict, preFill=preFillUsername)
+        
 
 ## Functions
 # Format client side input to comma seperated string
@@ -186,7 +185,7 @@ def getSummoner(summoner):
 # Main analysis for summoner
 def summonerAnalyser(apiSummoner, userInput, dodge, requestSummonerDict):
     print(apiSummoner)
-    #Init all summoner details
+    # Init all summoner details
     summonerId = apiSummoner['id']
     summonerPuid = apiSummoner['puuid']
     summonerName = apiSummoner['name']
@@ -275,26 +274,6 @@ def matchAnalyser(matchId, summonerName, championWinratesDict, winRateDict):
             championWinratesDict[champion][1] += 1
         else: 
             championWinratesDict[champion] = [0,1]
-            
-# Get all shared lists for current user
-@bp.app_context_processor
-def getSharedLists():
-    listsDict = {}
-    if g.user:
-        db = get_db() 
-        tempList = db.execute('''
-            SELECT l.title, l.id
-            FROM users u JOIN ownerOf o ON o.u_id = u.id JOIN lists l ON l.id = o.list_id 
-            WHERE u.id = ? and l.type = "shared"
-            UNION
-            SELECT l.title, l.id
-            FROM users u JOIN memberOf m on m.u_id JOIN lists l on l.id = m.list_id
-            WHERE u.id = ? and l.type = "shared"
-            ''', [g.user['id'], g.user['id']]).fetchall()
-        for row in tempList: 
-            listName, listID = row
-            listsDict[listName] = [listID]
-    return dict(sharedListsDict=listsDict)
 
 # Set up api instance before main app is run
 def setApiInstance(app):
