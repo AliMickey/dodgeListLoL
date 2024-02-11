@@ -2,7 +2,7 @@
 ## Description
 A web app to provide League of Legends players easy access to player tracking through the use of lists.
 
-[Archive]([https://dodge.app.mickit.net](https://web.archive.org/web/20221211205823/https://dodge.app.mickit.net/))
+[Archive](https://web.archive.org/web/20221211205823/https://dodge.app.mickit.net/)
 
 ## Motivation
 Some League of Legends players needed to have the ability to track certain players that they have played with. This idea was initially done through the use of a shared online notebook, this did not prove to be efficient nor easy to use.
